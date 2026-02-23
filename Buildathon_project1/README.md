@@ -166,6 +166,18 @@ You can modify this inside:
 
 email_engine/email_writer.py
 
+🤖 Agents Overview
+
+The system is composed of three autonomous agents, each handling a distinct stage of the outreach pipeline:
+
+| Agent | Module | Responsibility |
+|---|---|---|
+| **GitHub Lead Finder Agent** | `github/github_email_finder.py` | Searches GitHub using the Search API, iterates through user profiles, commit metadata, and public push events to extract valid public email addresses. Saves results to `data/emails.csv`. |
+| **LLM Email Generator Agent** | `email_engine/llm_client.py` + `email_engine/email_writer.py` | Builds a dynamic prompt with recipient name, product details, and target audience context, then calls the `meta-llama/Meta-Llama-3.1-8B-Instruct` model via the HuggingFace Inference API (`chat_completion`) to produce a personalised cold email. Falls back to a rule-based template when the API is unavailable. |
+| **Email Sender Agent** | `mailer/send_email.py` | Connects to `smtp.gmail.com` over TLS using a Gmail App Password, attaches optional PDF files and links, and delivers the generated email to each lead one by one. |
+
+---
+
 🧠 How It Works (Under the Hood)
 🔹 GitHub Scraper:
 
