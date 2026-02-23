@@ -1,44 +1,44 @@
-from github.github_email_finder import main as fetch_github_emails
-from core.csv_manager import read_csv
-from email_engine.llm_client import LLMClient
-from email_engine.email_writer import EmailWriter
-from mailer.send_email import send_email
-import pandas as pd
+import os
+
+from dotenv import load_dotenv
+
+from crew.crew import build_outreach_crew
+
+load_dotenv()
+
 
 def main():
-    print("=== Full Outreach Automation ===")
+    print("=== Smart Lead Generator — CrewAI Pipeline ===\n")
 
-    # Step 1: Fetch GitHub emails → saves to data/emails.csv
-    fetch_github_emails()
+    query = input("GitHub search query (e.g. 'Python Developer'): ").strip() or "Python Developer"
+    max_results = int(input("Max leads to find (default 5): ").strip() or 5)
+    product = input("Product name: ").strip()
+    description = input("Product description: ").strip()
+    target_audience = input("Target audience (leave blank to use search query): ").strip() or query
 
-    # Step 2: Read saved emails
-    contacts = read_csv("leads.csv")
+    if not os.getenv("SENDER_EMAIL"):
+        val = input("Your Gmail address (or set SENDER_EMAIL in .env): ").strip()
+        if not val:
+            raise SystemExit("Error: SENDER_EMAIL is required. Set it in your .env file.")
+        os.environ["SENDER_EMAIL"] = val
+    if not os.getenv("SENDER_APP_PASSWORD"):
+        val = input("Your Gmail App Password (or set SENDER_APP_PASSWORD in .env): ").strip()
+        if not val:
+            raise SystemExit("Error: SENDER_APP_PASSWORD is required. Set it in your .env file.")
+        os.environ["SENDER_APP_PASSWORD"] = val
 
-    # Step 3: Setup LLM
-    llm = LLMClient()
-    writer = EmailWriter(llm)
+    crew = build_outreach_crew(
+        query=query,
+        max_results=max_results,
+        product=product,
+        description=description,
+        target_audience=target_audience,
+    )
 
-    topic = "Python Developer Opportunity"
-    sender = input("Your Gmail: ")
-    app_pass = input("Your Gmail App Password: ")
+    result = crew.kickoff()
+    print("\n🎉 Campaign complete!")
+    print(result)
 
-    # Step 4: Email each contact
-    for _, row in contacts.iterrows():
-        username = row["username"]
-        email = row["email"]
-
-        print(f"\nGenerating email for {username} ({email})...")
-        email_text = writer.write_email(username, topic)
-
-        send_email(
-            sender=sender,
-            app_password=app_pass,
-            receiver=email,
-            subject=topic,
-            body=email_text
-        )
-
-    print("\n🎉 ALL EMAILS SENT SUCCESSFULLY!")
 
 if __name__ == "__main__":
     main()
